@@ -56,13 +56,22 @@
 npm install
 ```
 
-### 方式 A（推荐）：本地路径安装
+### 方式 A（推荐）：克隆后本地安装
 
 ```bash
-openclaw plugins install -l /Users/test/Desktop/sensus-ai/NexusClaw_channels
+git clone https://github.com/<your-org-or-user>/<your-final-repo-name>.git
+cd <your-final-repo-name>
+npm install
+openclaw plugins install -l .
 ```
 
-说明：`-l` 表示 link 本地目录，适合开发和自用。
+说明：`-l` 表示 link 当前本地目录，适合开发和自用。
+
+如果你已经在本地任意位置有仓库，也可直接：
+
+```bash
+openclaw plugins install -l <path-to-repo>
+```
 
 ### 方式 B：通过包规范安装（path-or-spec）
 
