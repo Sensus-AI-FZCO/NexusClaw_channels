@@ -56,10 +56,21 @@
 npm install
 ```
 
-安装插件到 OpenClaw：
+### 方式 A（推荐）：本地路径安装
 
 ```bash
 openclaw plugins install -l /Users/test/Desktop/sensus-ai/NexusClaw_channels
+```
+
+说明：`-l` 表示 link 本地目录，适合开发和自用。
+
+### 方式 B：通过包规范安装（path-or-spec）
+
+`openclaw plugins install` 支持 `path-or-spec`（路径、压缩包、npm spec）。
+如果你发布到了 npm，可直接：
+
+```bash
+openclaw plugins install <your-npm-package-name>
 ```
 
 启用并重启网关：
@@ -121,7 +132,7 @@ openclaw gateway call channels.status --json
 
 - 不要提交任何 `.env`、密钥文件或部署凭据。
 - 建议不要把 `node_modules` 提交到仓库。
-- 建议补充 `LICENSE`（例如 MIT）。
+- 已补充 `MIT LICENSE`。
 - 发版前再次执行一次密钥扫描。
 
 可用的本地扫描命令示例：
