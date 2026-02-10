@@ -1,126 +1,131 @@
-# OpenClaw Channels Integration Notes
+# sensusai_chat (OpenClaw Channel)
 
-本文档说明 `sensusai_chat` channel 的改造结论、部署流程、以及 App/插件参数如何填写。
+`sensusai_chat` 是一个用于 OpenClaw 的 outbound-only channel，
+通过 WebSocket 将消息桥接到 Cloudflare Workers/DO 侧（默认协议 `channelId=openclaw-connect`）。
 
-## 1) 改造要点与当前状态
+## 1. 当前检查结论（开源前）
 
-- Channel 插件 ID 已统一为 `sensusai_chat`。
-- 协议 `channelId` 仍保持 `openclaw-connect`（用于云端鉴权与协议兼容）。
-- 已适配 OpenClaw 2026 网关生命周期：
-  - 使用 `gateway.startAccount/stopAccount`（不是旧的 `gateway.start/stop`）。
-- 已验证链路：
-  - OpenClaw `channels.status` 可见 `sensusai_chat` 且 `running/connected` 正常。
-  - Worker 设备状态接口返回 `online: true`（设备在线时）。
+### 密钥暴露检查
 
-## 2) 目录与职责
+已对仓库内容做关键词扫描（排除 `.git` 与 `node_modules` 后）：
+- 未发现硬编码的 API Key / Token / 私钥内容。
+- `index.js` 中不会直接打印 `deviceSecret`。
+- WebSocket 连接日志里会对 `sig` 参数做脱敏（`sig=REDACTED`）。
 
-- Channel 插件代码：
-  - `channels/openclaw-connect/index.js`
-  - `channels/openclaw-connect/openclaw.plugin.json`
-- Worker 代码：
-  - `server/src/index.ts`
-  - `server/wrangler.toml`
-- 环境变量：
-  - `server/.env`：Worker 侧配置（含 R2 与服务端密钥）
-  - `server/.env.app`：App/插件侧填写参数（便于和 Worker 配置分离）
+仍需注意：
+- `deviceId` 会出现在部分运行日志中（这通常可接受，但请按你的安全策略评估）。
+- 如果你后续添加 `.env`、测试脚本或部署脚本，请确保不提交到仓库。
 
-## 3) 部署（Worker）
+### 结构完整性与安装可用性
 
-在 `server/` 下执行：
+当前插件核心文件齐全：
+- `index.js`
+- `openclaw.plugin.json`
+- `package.json`
 
-```bash
-npx -y wrangler@4.63.0 deploy
+且 `package.json` 中包含 OpenClaw 所需字段：
+- `openclaw.extensions`
+- `openclaw.channels`
+- `openclaw.installDependencies`
+
+可按本 README 的安装步骤直接安装到 OpenClaw。
+
+## 2. 目录结构
+
+```text
+.
+├── index.js
+├── openclaw.plugin.json
+├── package.json
+├── package-lock.json
+└── README.md
 ```
 
-如需重新写入 secrets（按提示粘贴值）：
+## 3. 前置条件
+
+- 已安装并可使用 OpenClaw CLI。
+- Node.js 18+（建议 LTS）。
+- 已部署可用的 Cloudflare Worker WebSocket 入口（示例：`wss://<your-worker>/ws/device`）。
+- 已在服务端准备好对应设备身份（`deviceId` / `deviceSecret`）。
+
+## 4. 安装步骤
+
+在本仓库目录执行：
 
 ```bash
-npx -y wrangler@4.63.0 secret put DEVICE_KEYS_JSON
-npx -y wrangler@4.63.0 secret put PAIRING_CODES_JSON
-npx -y wrangler@4.63.0 secret put DEVICE_ACCESS_JSON
-npx -y wrangler@4.63.0 secret put SESSION_SECRET
-npx -y wrangler@4.63.0 secret put R2_ACCESS_KEY_ID
-npx -y wrangler@4.63.0 secret put R2_SECRET_ACCESS_KEY
-npx -y wrangler@4.63.0 secret put R2_ACCOUNT_ID
-npx -y wrangler@4.63.0 secret put R2_BUCKET
+npm install
 ```
 
-说明：
-
-- `R2_*` 保持你现有 `.env` 值即可，不需要为本次 channel 改造变更。
-- Worker 名称当前为 `sensusai_chat`（见 `server/wrangler.toml`）。
-
-## 4) 参数填写（App 与 OpenClaw 插件）
-
-### 4.1 App 端填写（来自 `server/.env.app`）
-
-V2 推荐：
-
-- `CLOUD_BASE_URL`
-- `CONNECT_TOKEN`
-
-兼容回退（旧模式）：
-
-- `DEVICE_ID`
-- `CHANNEL_ID`（应为 `openclaw-connect`）
-- `PAIRING_CODE`
-
-### 4.2 OpenClaw Channel 配置填写
-
-在 OpenClaw UI / 配置里，`sensusai_chat` 至少填写：
-
-- `Channel Id` = `openclaw-connect`
-- `Cloud Url` = `https://<your-worker>.workers.dev`（插件会自动补 `wss://.../ws/device`）
-- `Device Id` = 与 `.env.app` 一致
-- `Device Secret` = `.env.app` 的 `DEVICE_SECRET`
-- `Enabled` = `true`
-
-## 5) 安装/启用插件（OpenClaw）
-
-先禁用旧版，再覆盖安装新版：
+安装插件到 OpenClaw：
 
 ```bash
-openclaw plugins disable sensusai_chat || true
+openclaw plugins install -l /Users/test/Desktop/sensus-ai/NexusClaw_channels
 ```
 
-安装并启用新版：
+启用并重启网关：
 
 ```bash
-openclaw plugins install -l /Users/test/Desktop/sensus-ai/openclaw-connect/channels/openclaw-connect
 openclaw plugins enable sensusai_chat
 openclaw gateway restart
 ```
 
-## 6) 联通检查
+## 5. 配置说明（OpenClaw UI / 配置文件）
 
-### 6.1 本地 channel 运行状态
+在 `sensusai_chat` channel 中至少填写以下字段：
+
+- `Enabled`: `true`
+- `Cloud Url`: `https://<your-worker>.workers.dev` 或 `wss://<your-worker>/ws/device`
+- `Channel Id`: `openclaw-connect`（默认值，建议保持）
+- `Device Id`: 与服务端登记设备一致
+- `Device Secret`: 与服务端设备密钥一致
+
+说明：
+- 若 `Cloud Url` 传入的是 `https://...`，插件会自动转为 `wss://...`，并在路径为空时补 `/ws/device`。
+- 其余参数（重连、心跳、队列、超时）可保持默认，按需要再调优。
+
+## 6. 联通验证
+
+查看 channel 状态：
 
 ```bash
 openclaw gateway call channels.status --json
 ```
 
-重点看：
+重点关注：
+- `configured: true`
+- `running: true`
+- `connected: true`
 
-- `channels.sensusai_chat.running == true`
-- `channels.sensusai_chat.connected == true`
+若使用 Cloudflare Worker 设备状态接口，也可额外验证设备是否在线。
 
-### 6.2 云端设备在线状态
+## 7. 常见问题
+
+### `configured=true` 但未连接
+
+请优先检查：
+- `Channel Id` 是否与服务端一致（建议 `openclaw-connect`）。
+- `Cloud Url` 是否为正确 Worker 地址。
+- `Device Secret` 是否与服务端保存值一致。
+
+### 连上后频繁重连
+
+可按需调优：
+- `reconnectInitialMs`
+- `reconnectMaxMs`
+- `reconnectFactor`
+- `reconnectJitter`
+- `wsPingMs`
+- `idleTimeoutMs`
+
+## 8. 开源发布前建议清单
+
+- 不要提交任何 `.env`、密钥文件或部署凭据。
+- 建议不要把 `node_modules` 提交到仓库。
+- 建议补充 `LICENSE`（例如 MIT）。
+- 发版前再次执行一次密钥扫描。
+
+可用的本地扫描命令示例：
 
 ```bash
-curl -sS "https://<your-worker>.workers.dev/v1/devices/<DEVICE_ID>/status"
+rg -n --hidden -S "(api[_-]?key|secret|token|password|sk-[A-Za-z0-9]|BEGIN (RSA|OPENSSH|EC) PRIVATE KEY)" . -g '!node_modules/**' -g '!.git/**'
 ```
-
-重点看：
-
-- `online: true`
-- `deviceChannelId: "openclaw-connect"`
-
-## 7) 常见问题
-
-- 现象：`configured=true` 但不运行  
-  原因：插件若仍是旧生命周期（`gateway.start/stop`）会被 OpenClaw 2026 忽略。  
-  处理：确认 `index.js` 使用 `startAccount/stopAccount`。
-
-- 现象：密钥看起来“对了”但连不上  
-  常见原因：`channelId` 不一致、`cloudUrl` 填了错误路径、`deviceSecret` 与服务端哈希不匹配。  
-  处理：对照 `.env.app` 与 Worker secrets 逐项核对。
