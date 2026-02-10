@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "sensusai_chat",
+  "name": "sensusai_chat",
+  "version": "0.2.0",
+  "description": "Outbound-only OpenClaw channel that bridges to Cloudflare Workers/DO via WebSocket.",
+  "channels": ["sensusai_chat"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": { "type": "boolean", "default": true },
+      "cloudUrl": { "type": "string" },
+      "channelId": { "type": "string", "default": "openclaw-connect" },
+      "deviceId": { "type": "string" },
+      "deviceSecret": { "type": "string" },
+      "heartbeatMs": { "type": "number", "default": 20000 },
+      "reconnectMs": { "type": "number", "default": 2000 },
+      "reconnectInitialMs": { "type": "number", "default": 2000 },
+      "reconnectMaxMs": { "type": "number", "default": 30000 },
+      "reconnectFactor": { "type": "number", "default": 1.8 },
+      "reconnectJitter": { "type": "number", "default": 0.25 },
+      "maxQueueSize": { "type": "number", "default": 500 },
+      "idleTimeoutMs": { "type": "number", "default": 120000 },
+      "connectProbeTimeoutMs": { "type": "number", "default": 2500 },
+      "wsPingMs": { "type": "number", "default": 25000 }
+    }
+  },
+  "uiHints": {
+    "channelId": { "label": "Channel Id" },
+    "cloudUrl": {
+      "label": "Cloud Url",
+      "placeholder": "wss://<your-worker>/ws/device"
+    },
+    "deviceId": { "label": "Device Id" },
+    "deviceSecret": { "label": "Device Secret", "sensitive": true },
+    "heartbeatMs": { "label": "Heartbeat Ms", "advanced": true },
+    "reconnectMs": { "label": "Reconnect Ms", "advanced": true },
+    "reconnectInitialMs": { "label": "Reconnect Initial Ms", "advanced": true },
+    "reconnectMaxMs": { "label": "Reconnect Max Ms", "advanced": true },
+    "reconnectFactor": { "label": "Reconnect Factor", "advanced": true },
+    "reconnectJitter": { "label": "Reconnect Jitter", "advanced": true },
+    "maxQueueSize": { "label": "Max Queue Size", "advanced": true },
+    "idleTimeoutMs": { "label": "Idle Timeout Ms", "advanced": true },
+    "connectProbeTimeoutMs": { "label": "Connect Probe Timeout Ms", "advanced": true },
+    "wsPingMs": { "label": "WS Ping Ms", "advanced": true }
+  }
+}

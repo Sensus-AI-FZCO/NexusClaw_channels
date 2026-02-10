@@ -1,0 +1,18 @@
+{
+  "name": "sensusai_chat",
+  "version": "0.2.0",
+  "private": true,
+  "main": "index.js",
+  "openclaw": {
+    "extensions": [
+      "./index.js"
+    ],
+    "channels": [
+      "sensusai_chat"
+    ],
+    "installDependencies": true
+  },
+  "dependencies": {
+    "ws": "^8.17.1"
+  }
+}
